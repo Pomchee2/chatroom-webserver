@@ -1,6 +1,9 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
 import {ajax, BASE_URL} from '~/src/common/ajax';
+import MuiThemeProvider from 'material-ui/styles/MuiThemeProvider';
+import Paper from 'material-ui/Paper';
+import ChatInput from './ChatInput.jsx';
 
 class App extends React.Component {
   constructor(props) {
@@ -15,23 +18,7 @@ class App extends React.Component {
 
     this.sendMessage = this.sendMessage.bind(this);
     this.addMessage = this.addMessage.bind(this);
-  }
 
-  addMessage(m) {
-    const usernameStyle = {
-      marginRight: "3em",
-    };
-    const messageStyle = {
-    };
-    this.state.messages.push((
-      <tr>
-        <td style={usernameStyle}>{m.username}</td>
-        <td style={messageStyle}>{m.message}</td>
-      </tr>
-    ));
-  }
-
-  componentDidMount() {
     function poll(thisRef) {
       let content = JSON.stringify({
         timestamp: thisRef.state.latestTimestamp,
@@ -45,7 +32,7 @@ class App extends React.Component {
             thisRef.addMessage(message);
             thisRef.state.latestTimestamp = message.timestamp;
           }
-          thisRef.setState(thisRef.state);
+          thisRef.forceUpdate();
           poll(thisRef);
         })
         .catch(function(err) {
@@ -55,53 +42,104 @@ class App extends React.Component {
     poll(this);
   }
 
-  sendMessage(e) {
-    let node = ReactDOM.findDOMNode(this.refs.input);
-    let m = node.value;
-    node.value = "";
+  componentDidUpdate() {
+    console.log("Hey");
+    let node = ReactDOM.findDOMNode(this.refs.chatBox);
+    node.scroll({
+      top: node.scrollHeight,
+      behaviour: 'smooth',
+    });
+  }
+
+  addMessage(m) {
+    const usernameStyle = {
+      marginRight: '8em',
+      fontSize: '0.8em',
+      width: '6em',
+      height: '4em',
+      color: '#111',
+      //backgroundColor: '#222',
+      borderRadius: '1000px',
+      textAlign: 'center',
+    };
+
+    const messageStyle = {
+      marginLeft: '2em',
+    };
+
+    const divStyle = {
+      margin: '0.4em',
+      padding: '0.2em',
+      paddingLeft: '1em',
+    };
+
+    const dividerStyle = {
+      height: '80%',
+      backgroundColor: '#DDD',
+      padding: '0',
+      width: '1.0px',
+    }
+
+    const spacerStyle = {
+      width: '1em',
+    }
+
+    this.state.messages.push((
+      <Paper style={divStyle}>
+        <table style={{width: '100%'}}>
+          <tr>
+            <td style={usernameStyle}>{m.username}</td>
+            <td style={spacerStyle}></td>
+            <td style={dividerStyle}></td>
+            <td style={spacerStyle}></td>
+            <td style={messageStyle}>{m.message}</td>
+          </tr>
+        </table>
+      </Paper>
+    ));
+  }
+
+  sendMessage(m) {
     let thisRef = this;
-      console.log(this.state.username);
     ajax("POST", BASE_URL + "/chatroom/sendmessage", 
       JSON.stringify({
         name: this.state.username,
         message: m,
       }),
       [{header: "Content-Type", value: "application/json"}])
-
-    e.preventDefault();
+    this.forceUpdate();
   }
 
   render() {
     const divStyle = {
-      width: '80%',
-      margin: 'auto',
+      position: 'fixed',
+      left: '10%',
+      right: '10%',
+      top: '5%',
+      bottom: '5%',
     };
 
-    const tableStyle = {
+    const chatStyle = {
       position: 'abxolute',
-      height: '60%',
-      tableLayout: 'fixed',
+      overflowY: 'auto', 
+      scrollBehaviour: 'smooth',
+      height: '90%',
     };
 
-    const formStyle = {
+    const chatInputStyle = {
       width: '100%',
     };
 
     return (
       <div style={divStyle}>
-        <div style={{overflowY: 'auto', height: '60%', }}>
-          <table style={tableStyle}>
-            {this.state.messages}
-          </table>
-        </div>
-        <form style={formStyle} onSubmit={this.sendMessage}>
-          <input type="text" id="message" ref="input" 
-            autoComplete="off"
-            placeholder="Enter message here..." 
-            style={{width: '90%'}}/>
-          <input type="submit" value="Send" 
-            style={{width: '9%'}}/>
-        </form>
+        <MuiThemeProvider>
+          <div>
+            <Paper style={chatStyle} ref="chatBox">
+              {this.state.messages}
+            </Paper>
+            <ChatInput style={chatInputStyle} sendFunc={this.sendMessage} />
+          </div>
+        </MuiThemeProvider>
       </div>
     );
   }
